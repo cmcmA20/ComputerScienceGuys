@@ -50,7 +50,7 @@
 
 *Язык: Русский*  
 *Сложность: 2 из 5*  
-*Описание: Цикл статей на [IBM](https://www.ibm.com). Подходит для тех, кто только вчера узнал что "Haskell" и "хаски" это разные слова.*
+*Описание: Цикл статей на [IBM](https://www.ibm.com). Подходит для тех, кто только вчера узнал, что "Haskell" и "хаски" это не одно и тоже.*
 
 * [1. Введение](http://www.ibm.com/developerworks/ru/library/l-haskell/index.html) `[html]`
 * [2. Основные типы и классы](http://www.ibm.com/developerworks/ru/library/l-haskell2/index.html) `[html]`
