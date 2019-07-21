@@ -20,7 +20,7 @@
 
 #### Cathegory theory for programmers by Bartosz Milewski
 
-*Язык: Анлийский (Первые 9 на русском, спасибо [callmecabman](https://github.com/callmecabman))*  
+*Язык: Английский (Первые 9 на русском, спасибо [callmecabman](https://github.com/callmecabman))*  
 *Сложность: 4 из 5*  
 *Описание: Цикл видео о теории категорий, выложенный на официальном YouTube-канале Бартоша Милевского.*
 
