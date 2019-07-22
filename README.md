@@ -86,4 +86,4 @@
 
 ### Формальные языки и теория автоматов
 
-* [Formal Languages and Automata Theory](https://www.ics.uci.edu/~goodrich/teach/cs162/notes/)
+* [Formal Languages and Automata Theory](https://www.ics.uci.edu/~goodrich/teach/cs162/notes/) `[ppt]`
