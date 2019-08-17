@@ -1,0 +1,44 @@
+module Test where
+
+-- This is my factorial imnplementation -------------
+fact' :: Integer -> Integer
+fact' n | n >  0 = n * fact' (n-1)
+        | n == 0 = 1
+        | n <  0 = undefined
+-----------------------------------------------------
+
+
+-- This is my length implementation -----------------
+length' :: [a] -> Int
+length' (x : xs) = 1 + length (xs)
+-----------------------------------------------------
+
+
+-- This is my map implementation --------------------
+map' :: (a -> b) -> [a] -> [b]
+map' foo xs = [ foo x | x <- xs]
+map'' :: (a -> b) -> [a] -> [b]
+map'' foo [] = []
+map'' foo (x : xs) = (foo x) : (map'' foo xs)
+-----------------------------------------------------
+
+
+-- This is my filter implementation -----------------
+filter' :: (a -> Bool) -> [a] -> [a]
+filter' p [] = []
+filter' p (x : xs) | p x       = x : filter' p xs
+                   | otherwise = filter p xs
+-----------------------------------------------------
+
+-- This is my foldl1 implementation -----------------
+foldl1' f [] = []
+foldl1' f [x] = x
+foldl1' f (x:(y:ys)) = foldl1' f (f x y : ys)
+-----------------------------------------------------
+
+paren :: String -> String -> String
+paren x y = concat ["(", x, " * ", y, ")"]
+
+
+
+
