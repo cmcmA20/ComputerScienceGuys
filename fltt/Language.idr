@@ -9,30 +9,24 @@ import Control.Isomorphism
 
 -- data ChomskyTag = Regular | ContextFree | ContextSensitive | RE
 
-||| Alphabet is finite
+||| Word is a vector of alphabet symbols
+data LWord : Type -> Type where
+  MkLWord : Vect n term -> LWord term
 
+||| Shorter or of equal length
+data ShEq : LWord term -> LWord term -> Type where
+  MkShEq : (a : Vect m term) -> (b : Vect n term) -> (m `LTE` n) -> ShEq (MkLWord a) (MkLWord b)
 
-||| Language word is a finite Vector of alphabet symbols
-record LWord a where
-  constructor MkLWord
-  wsymbols : (n ** Vect n a)
-
-LWord_to_Vect_n_and_back : (lw : LWord a) -> MkLWord (wsymbols lw) = lw
-LWord_to_Vect_n_and_back (MkLWord wsymbols) = Refl
-
-Vect_n_to_LWord_and_back : (p : (n ** Vect n a)) -> wsymbols (MkLWord p) = p
-Vect_n_to_LWord_and_back p = Refl
-
-||| LWord is trivially a vector
-LWord_is_Vect_n : Iso (LWord a) (n ** Vect n a)
-LWord_is_Vect_n = MkIso wsymbols MkLWord Vect_n_to_LWord_and_back LWord_to_Vect_n_and_back
-
+data AscWordList : Type -> Type where
+  Nil    : AscWordList (LWord term)
+  Single : LWord term -> AscWordList (LWord term)
+  -- Append : (w1, w2 : LWord term) -> (wl : AscWordList (LWord term)) ->
+  --   AscWordList (LWord term)
 
 ||| Formal language is a possibly infinite List of words over an alphabet
-||| Blunt and nasty definition
+||| Length of words is increasing
 codata Lang : (a : Type) -> Type where
-  EmptyFL : Lang a
-  PrependWord : LWord a -> Lang a -> Lang a
+  MkLang : AscWordList term -> Lang term
 
 %name Lang lang, lang1, lang2
 

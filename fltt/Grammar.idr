@@ -1,137 +1,114 @@
 module Grammar
 
 import Data.Vect
-import Control.Isomorphism
-
-import Language
+import Data.Vect.Quantifiers
+import Decidable.Equality
+import FiniteMaps
 
 %default total
 %access public export
 
-||| Alphabet of terms must be finite
-||| Alphabet of variables must be finite
-
-data MetaSymbol : (term : Type) -> (var : Type) -> Type where
+||| Alphabets of terms and variables should be finite for the classical theory
+data MetaSymbol : Type -> Type -> Type where
   MSTerm : term -> MetaSymbol term var
   MSVar  : var  -> MetaSymbol term var
 
-(Eq term, Eq var) => Eq (MetaSymbol term var) where
-  (==) (MSTerm _) (MSVar _) = False
-  (==) (MSVar _) (MSTerm _) = False
-  (==) (MSVar u) (MSVar v) = u == v
-  (==) (MSTerm s) (MSTerm t) = s == t
+termInjective : MSTerm x = MSTerm y -> x = y
+termInjective Refl = Refl
 
-%name MetaSymbol ms, ms1, ms2
+varInjective  : MSVar  x = MSVar  y -> x = y
+varInjective Refl = Refl
 
--- record MetaWord where
---   constructor MkMetaWord
---   term    : Type
---   var     : Type
---   letters : List (MetaSymbol term var)
+Uninhabited (MSVar v = MSTerm t) where
+  uninhabited Refl impossible
 
-||| Words are finite sequences
-MetaWord : Type -> Type -> Type
-MetaWord term var = List (MetaSymbol term var)
+Uninhabited (MSTerm t = MSVar v) where
+  uninhabited Refl impossible
 
-%name MetaWord mw, mw1, mw2
+(DecEq term, DecEq var) => DecEq (MetaSymbol term var) where
+  decEq (MSTerm x) (MSTerm y) with (decEq x y)
+    | Yes prf    = Yes $ cong {f=MSTerm} prf
+    | No  contra = No $ contra . termInjective
+  decEq (MSVar  x) (MSVar  y) with (decEq x y)
+    | Yes prf    = Yes $ cong {f=MSVar} prf
+    | No  contra = No $ contra . varInjective
+  decEq (MSTerm x) (MSVar  y) = No absurd
+  decEq (MSVar  x) (MSTerm y) = No absurd
 
-MkMetaWord : List (MetaSymbol term var) -> MetaWord term var
-MkMetaWord xs = xs
 
-containsVariables : (mw : MetaWord term var) -> Bool
-containsVariables mw = foldr orIsAVariable False mw
-  where
-    orIsAVariable : MetaSymbol term var -> Bool -> Bool
-    orIsAVariable (MSTerm t) b = b
-    orIsAVariable (MSVar  v) b = True
+||| Words are of finite length
+data MetaWord : Type -> Type -> Type where
+  MSWord : Vect n (MetaSymbol term var) -> MetaWord term var
 
-||| There should be at least one variable on the left side of the rule
-data Rule : (term : Type) -> (var : Type) -> Type where
-   MkRule : (mw : MetaWord term var ** containsVariables mw = True) -> MetaWord term var -> Rule term var
+wordInjective : (MSWord {n=m} x = MSWord {n=n} y) -> (m = n, x = y)
+wordInjective Refl = (Refl, Refl)
 
-substitute : (Eq term, Eq var) => (r : Rule term var) -> (mw : MetaWord term var) -> MetaWord term var
-substitute _ []           = []
-substitute r mw@(x :: xs) = case r of (MkRule (before ** _) after) => if before `isPrefixOf` mw
-                                                                         then let rest = drop (length before) mw
-                                                                               in after ++ rest
-                                                                         else x :: (substitute r xs)
+Uninhabited (MSWord [] = MSWord (x :: xs)) where
+  uninhabited Refl impossible
+
+Uninhabited (MSWord (x :: xs) = MSWord []) where
+  uninhabited Refl impossible
+
+DecEq (MetaSymbol term var) => DecEq (MetaWord term var) where
+  decEq (MSWord {n=Z  } []       ) (MSWord {n=Z  } []       ) = Yes Refl
+  decEq (MSWord {n=Z  } []       ) (MSWord {n=S j} (y :: ys)) = No absurd
+  decEq (MSWord {n=S i} (x :: xs)) (MSWord {n=Z  } []       ) = No absurd
+  decEq (MSWord {n=S i} (x :: xs)) (MSWord {n=S j} (y :: ys)) with (decEq x y)
+    | Yes p    with (assert_total (decEq (MSWord xs) (MSWord ys)))
+      | Yes q      = let (_, w) = wordInjective q
+                      in rewrite p
+                      in rewrite w
+                      in Yes $ Refl
+      | No  contra = No $ \Refl => contra Refl
+    | No  contra = No $ \Refl => contra Refl
+
+||| Word specific Elem
+data MWElem : MetaSymbol term var -> MetaWord term var -> Type where
+  IsPresent : Elem ms xs -> MWElem ms (MSWord xs)
+
+||| Contains at least one variable symbol
+data ContainsVar : MetaWord term var -> Type where
+  HasNT : (v : var ** Elem (MSVar v) xs) -> ContainsVar (MSWord xs)
+
+||| Production rules can't contain terminal to terminal mapping
+data ProdRules : Type -> Type -> Type where
+  PRMap : (fmm : FiniteMultiMap (MetaWord term var) (MetaWord term var) ** All ContainsVar (snd (keysFMulti fmm))) ->
+    ProdRules term var
 
 record Grammar term var where
   constructor MkGrammar
-  startSymbol : var
-  productions : List (Rule term var)
+  pr    : ProdRules term var
+  start : var
 
-produceStepWord : (Eq term, Eq var) => (g : Grammar term var) -> (mw : MetaWord term var) -> List (MetaWord term var)
-produceStepWord g mw = map (\r => substitute r mw) (productions g)
+-- examples
+data TestVar  = S
 
-produceStepManyWords : (Eq term, Eq var) => (g : Grammar term var) -> (mws : List (MetaWord term var)) -> List (MetaWord term var)
-produceStepManyWords g mws = concatMap (produceStepWord g) mws
+DecEq TestVar where
+  decEq S S = Yes Refl
 
-data TerminalSymbol : MetaSymbol term var -> Type where
-  ReallyTerminal : term -> TerminalSymbol (MSTerm term)
+data TestTerm = A | B
 
-isTerminalSymbol : MetaSymbol term var -> Bool
-isTerminalSymbol (MSTerm _) = True
-isTerminalSymbol (MSVar  _) = False
+Uninhabited (A = B) where
+  uninhabited Refl impossible
 
-castTerminalSymbol : (ms : MetaSymbol term var ** isTerminalSymbol ms = True) -> TerminalSymbol ms
-castTerminalSymbol ((MSTerm t) ** pf) = ReallyTerminal ?dsfrhs1
-castTerminalSymbol ((MSVar  v) ** pf) = ?castTerminalSymbol_rhs_3
+Uninhabited (B = A) where
+  uninhabited Refl impossible
 
--- isTerminalWord : (mw : MetaWord term var) -> List (ms : MetaSymbol term var ** isTerminalSymbol ms = True)
--- isTerminalWord []        = []
--- isTerminalWord (x :: xs) = case x of
---                                 MSTerm t => (x ** isTerminalSymbol x = True) :: isTerminalWord xs
---                                 MSVar  v => ?rhs2
+DecEq TestTerm where
+  decEq A A = Yes Refl
+  decEq B B = Yes Refl
+  decEq A B = No absurd
+  decEq B A = No absurd
 
--- castTerminalWord : (mw : MetaWord term var ** isTerminalWord mw = True) -> LWord term
--- castTerminalWord (mw ** pf) = let q = 1
---                                in MkLWord ?xx
+-- S -> aSb
+-- S -> ba
+testPR : ProdRules TestTerm TestVar
+testPR =
+  PRMap $
+    (  appendFMulti (MSWord [MSVar S]) (MSWord [MSTerm A, MSVar S, MSTerm B]) $
+       appendFMulti (MSWord [MSVar S]) (MSWord [MSTerm B, MSTerm A])  $
+       emptyFMulti
+    ** ([HasNT (S ** Here), HasNT (S ** Here)]))
 
---generatorStep : (Eq term, Eq var) => (g : Grammar term var) -> (to : List (MetaWord term var), nt : List (MetaWord term var)) -> ()
--- (NOT onlyTerminal) |produce-> (step 2, NOT onlyTerminal) |output-> (onlyTerminal)
---         ^                               |
---         +-------------------------------+
---discardTerminals : List (MetaWord term var) -> List (MetaWord term var), List (MetaWord term var)
---discardTerminals = let q = produceStepManyWords xs
---                       ts = filter isTerminalOnly q
---                       ns = q \\ ts
---                    in (ts, ns)
-
---auti : (x : Var) -> STrans m () [x ::: State (List (MetaWord term var))]
---                               (const [x ::: State (List (MetaWord term var))])
-
--- TESTS
-
-data TTerm = Zero | One | Two
-Eq TTerm where
-  Zero == Zero = True
-  One == One = True
-  Two == Two = True
-  _ == _ = False
-
-data TVar  = S | A
-Eq TVar where
-  S == S = True
-  A == A = True
-  _ == _ = False
-
-
-testGrammar : Grammar TTerm TVar
-testGrammar = MkGrammar S [rule1, rule2, rule3, rule4, rule5]
-  where
-    rule1 = let before = MkMetaWord [MSVar S]
-                after  = MkMetaWord [MSTerm Zero, MSVar S, MSVar A, MSTerm Two]
-             in MkRule (before ** Refl) after
-    rule2 = let before = MkMetaWord [MSVar S]
-                after  = MkMetaWord []
-             in MkRule (before ** Refl) after
-    rule3 = let before = MkMetaWord [MSTerm Two, MSVar A]
-                after  = MkMetaWord [MSVar A, MSTerm Two]
-             in MkRule (before ** Refl) after
-    rule4 = let before = MkMetaWord [MSTerm Zero, MSVar A]
-                after  = MkMetaWord [MSTerm Zero, MSTerm One]
-             in MkRule (before ** Refl) after
-    rule5 = let before = MkMetaWord [MSTerm One, MSVar A]
-                after  = MkMetaWord [MSTerm One, MSTerm One]
-             in MkRule (before ** Refl) after
+testGrammar : Grammar TestTerm TestVar
+testGrammar = MkGrammar testPR S
