@@ -1,4 +1,4 @@
-module FiniteMaps
+module FiniteMap
 
 import Data.Vect
 import Decidable.Equality

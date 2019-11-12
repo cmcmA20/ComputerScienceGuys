@@ -7,6 +7,8 @@ import Control.Isomorphism
 %default total
 %access public export
 
+-- TODO finish this
+
 -- data ChomskyTag = Regular | ContextFree | ContextSensitive | RE
 
 ||| Word is a vector of alphabet symbols
@@ -38,3 +40,4 @@ codata Lang : (a : Type) -> Type where
 -- ||| LOL it's grammars all the way down
 -- data LangI : (a : Type) -> Type where
 --   Slice : ((n : Nat) -> List (Vect n a)) -> LangI a
+

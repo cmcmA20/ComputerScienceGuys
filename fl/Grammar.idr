@@ -3,7 +3,7 @@ module Grammar
 import Data.Vect
 import Data.Vect.Quantifiers
 import Decidable.Equality
-import FiniteMaps
+import FiniteMap
 
 %default total
 %access public export
@@ -112,3 +112,4 @@ testPR =
 
 testGrammar : Grammar TestTerm TestVar
 testGrammar = MkGrammar testPR S
+
