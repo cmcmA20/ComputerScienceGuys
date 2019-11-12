@@ -94,6 +94,6 @@ etaReduce (Lam  body             ) = Lam (etaReduce body)
 etaReduce (App  x y              ) = App (etaReduce x) (etaReduce y)
 
 -- ||| Eta-expansion step
--- etaExpand : UT ctx -> UT ctx
--- etaExpand = ?jiiasdsa
+etaExpand : UT ctx -> UT ctx
+etaExpand x = Lam $ App (weakenCtx x) (VarB FZ)
 
