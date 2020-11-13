@@ -28,6 +28,9 @@ Show (UT ctx) where
       showFin n FZ     = show n
       showFin n (FS x) = showFin (S n) x
 
+data Val : UT ctx -> Type where
+  MkVal : (v : UT 0) -> Val v
+
 ||| If the de Bruijn index points to the outer lambda, it returns a Left proof of it
 ||| Else it strengthens the index
 decOut : (i : Fin (S n)) -> Either (i = last {n}) (Fin n)
@@ -50,11 +53,14 @@ weakenCtx (App  x y ) = App (weakenCtx x) (weakenCtx y)
 substOut : (rep : UT ctx) -> (tgt : UT (S ctx)) -> UT ctx
 substOut rep (VarF name) = VarF name
 substOut rep (VarB idx ) {ctx} =
-  case decEq (last {n=ctx}) idx of
-       Yes _      => rep
-       No  contra => case decOut idx of
-                          Left  l => void $ contra $ sym l
-                          Right r => VarB r
+  case decOut idx of
+    Left  l => rep
+    Right r => VarB r
+--   case decEq (last {n=ctx}) idx of
+--        Yes _      => rep
+--        No  contra => case decOut idx of
+--                           Left  l => void $ contra $ sym l
+--                           Right r => VarB r
 substOut rep (Lam  body) = Lam $ substOut (weakenCtx rep) body
 substOut rep (App  x y ) = App (substOut rep x) (substOut rep y)
 
@@ -97,3 +103,5 @@ etaReduce (App  x y              ) = App (etaReduce x) (etaReduce y)
 etaExpand : UT ctx -> UT ctx
 etaExpand x = Lam $ App (weakenCtx x) (VarB FZ)
 
+callByValue : UT ctx -> (v : UT ctx, Val v)
+callByValue x = ?wqe
